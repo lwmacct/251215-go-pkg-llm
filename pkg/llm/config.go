@@ -39,23 +39,24 @@ import "time"
 //	        "api_version": "2025-01-15",
 //	    },
 //	}
+
 type Config struct {
-	// Type Provider 类型（默认 OpenRouter）
-	Type ProviderType
+	// Provider 类型（默认 OpenRouter）
+	Type ProviderType `json:"type,omitempty" yaml:"type,omitempty"`
 
 	// APIKey（Ollama 除外，其他 Provider 必需）
-	APIKey string
+	APIKey string `json:"api_key,omitempty" yaml:"api_key,omitempty"`
 
 	// 可选字段（有默认值）
-	Model   string
-	BaseURL string
+	Model   string `json:"model,omitempty" yaml:"model,omitempty"`
+	BaseURL string `json:"base_url,omitempty" yaml:"base_url,omitempty"`
 
 	// 网络配置
-	Timeout    time.Duration // HTTP 超时（默认 120s）
-	MaxRetries int           // 重试次数（默认 3）
+	Timeout    time.Duration `json:"timeout,omitempty" yaml:"timeout,omitempty"`
+	MaxRetries int           `json:"max_retries,omitempty" yaml:"max_retries,omitempty"`
 
 	// 扩展配置
-	Extra map[string]any // Provider 特定配置（headers, deployment 等）
+	Extra map[string]any `json:"extra,omitempty" yaml:"extra,omitempty"`
 }
 
 func DefaultConfig() *Config {
