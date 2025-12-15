@@ -57,3 +57,11 @@ type Config struct {
 	// 扩展配置
 	Extra map[string]any // Provider 特定配置（headers, deployment 等）
 }
+
+func DefaultConfig() *Config {
+	return &Config{
+		Type:       ProviderTypeOpenRouter,
+		Timeout:    120 * time.Second,
+		MaxRetries: 3,
+	}
+}
