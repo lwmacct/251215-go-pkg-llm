@@ -1,0 +1,113 @@
+# Mock Provider 统一配置文件
+# 所有场景通过 name 标识，使用 UseScenario(name) 指定
+
+default_response: "抱歉，我不理解您的问题。请指定具体的场景。"
+
+scenarios:
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 基础场景
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - name: "greeting"
+    turns:
+      - user: "你好"
+        assistant: "你好！很高兴见到你！"
+
+  - name: "weather"
+    turns:
+      - user: "天气怎么样"
+        assistant: "今天天气晴朗，温度适宜。"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 03-agent-single 单轮 Agent 对话
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - name: "agent_single"
+    turns:
+      - user: "天气"
+        assistant: "你好！我是 AI 助手。今天天气不错，有什么我可以帮助你的吗？"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 04-agent-multi 多轮 Agent 对话
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - name: "agent_multi"
+    turns:
+      - user: "你能做什么"
+        assistant: "你好！我是你的 AI 编程助手。我可以帮你写代码、解答问题、调试程序。请问有什么需要帮助的？"
+      - user: "Go 语言"
+        assistant: |
+          Go 语言是一门简洁高效的编程语言。它的特点包括：
+          1. 静态类型，编译型语言
+          2. 内置并发支持（goroutine）
+          3. 自动垃圾回收
+          4. 简洁的语法
+      - user: "Hello World"
+        assistant: |
+          好的，以下是一个简单的 Hello World 程序：
+
+          ```go
+          package main
+
+          import "fmt"
+
+          func main() {
+              fmt.Println("Hello, World!")
+          }
+          ```
+
+          运行命令：`go run main.go`
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 05/06-tool-calls 工具调用场景
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - name: "tool_time"
+    turns:
+      # Turn 1: 返回工具调用
+      - user: "现在几点"
+        assistant: "让我查一下当前时间。"
+        tools:
+          - name: "util.time"
+            input:
+              format: "DateTime"
+              timezone: "Asia/Shanghai"
+      # Turn 2: 收到工具结果后返回最终响应
+      - user: "[ToolResult]"
+        assistant: "根据查询，现在的时间是：{{.LAST_USER_MESSAGE}}"
+
+  # 多轮对话 - 订餐场景
+  - name: "restaurant_booking"
+    turns:
+      - user: "我想订餐"
+        assistant: "好的，请问您想订几位？"
+      - user: "3位"
+        assistant: "明白了。请问您想订什么时间？"
+      - user: "7点"
+        assistant: "好的，已为您预订今晚7点3人桌。"
+
+  # 带模板语法的响应
+  - name: "bot_info"
+    turns:
+      - user: "你叫什么名字"
+        assistant: '我叫{{.BOT_NAME | default "小智"}}，是一个 AI 助手。'
+
+  # Agent 循环场景 - 模拟复杂的多步骤任务
+  - name: "agent_loop"
+    turns:
+      - user: "帮我分析这个代码文件"
+        assistant: "好的，让我先读取文件内容。"
+        tools:
+          - name: "read_file"
+            input:
+              path: "{{.FILE_PATH | default `main.go`}}"
+      - user: "[ToolResult: file content]"
+        assistant: "文件读取成功。现在让我分析代码结构..."
+        tools:
+          - name: "analyze_code"
+            input:
+              language: "go"
+      - user: "[ToolResult: analysis]"
+        assistant: "代码分析完成！这是一个结构良好的 Go 程序，包含主函数和几个辅助函数。"
+
+delay: "10ms"
