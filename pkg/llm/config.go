@@ -42,21 +42,21 @@ import "time"
 
 type Config struct {
 	// Provider 类型（默认 OpenRouter）
-	Type ProviderType `json:"type,omitempty" yaml:"type,omitempty"`
+	Type ProviderType `koanf:"type"`
 
 	// APIKey（Ollama 除外，其他 Provider 必需）
-	APIKey string `json:"api_key,omitempty" yaml:"api_key,omitempty"`
+	APIKey string `koanf:"api-key"`
 
 	// 可选字段（有默认值）
-	Model   string `json:"model,omitempty" yaml:"model,omitempty"`
-	BaseURL string `json:"base_url,omitempty" yaml:"base_url,omitempty"`
+	Model   string `koanf:"model"`
+	BaseURL string `koanf:"base-url"`
 
 	// 网络配置
-	Timeout    time.Duration `json:"timeout,omitempty" yaml:"timeout,omitempty"`
-	MaxRetries int           `json:"max_retries,omitempty" yaml:"max_retries,omitempty"`
+	Timeout    time.Duration `koanf:"timeout"`
+	MaxRetries int           `koanf:"max-retries"`
 
 	// 扩展配置
-	Extra map[string]any `json:"extra,omitempty" yaml:"extra,omitempty"`
+	Extra map[string]any `koanf:"extra"`
 }
 
 func DefaultConfig() *Config {
