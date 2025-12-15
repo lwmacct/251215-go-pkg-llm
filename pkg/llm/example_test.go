@@ -102,3 +102,36 @@ func Example_stream() {
 	fmt.Println(text)
 	// Output: Streaming response
 }
+
+// Example_optionsReasoning 展示 Reasoning 统一参数配置
+func Example_optionsReasoning() {
+	// 使用统一参数（推荐）
+	// 支持: OpenAI o1/o3, Claude, Gemini 2.5
+	opts := &llm.Options{
+		Reasoning: "high", // "low"/"medium"/"high"
+		MaxTokens: 8192,
+	}
+
+	fmt.Println("Reasoning:", opts.Reasoning)
+	fmt.Println("MaxTokens:", opts.MaxTokens)
+	// Output:
+	// Reasoning: high
+	// MaxTokens: 8192
+}
+
+// Example_optionsThinkingBudget 展示精确控制 Thinking Budget
+func Example_optionsThinkingBudget() {
+	// 精确控制 Thinking Token 预算
+	// 适用于需要精细调节推理深度的场景
+	opts := &llm.Options{
+		EnableReasoning: true,
+		ReasoningBudget: 4096, // tokens
+		MaxTokens:       16000,
+	}
+
+	fmt.Println("EnableReasoning:", opts.EnableReasoning)
+	fmt.Println("ReasoningBudget:", opts.ReasoningBudget)
+	// Output:
+	// EnableReasoning: true
+	// ReasoningBudget: 4096
+}

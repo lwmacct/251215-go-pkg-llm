@@ -2,7 +2,7 @@
 //
 // 使用方式：
 //
-//	p, err := provider.New(&provider.Config{
+//	p, err := provider.New(&llm.Config{
 //	    Type:   llm.ProviderTypeOpenAI,
 //	    APIKey: "sk-xxx",
 //	    Model:  "gpt-4",
@@ -23,31 +23,11 @@ import (
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 配置
-// ═══════════════════════════════════════════════════════════════════════════
-
-// Config Provider 创建配置
-type Config struct {
-	// Type Provider 类型（默认 OpenRouter）
-	Type llm.ProviderType
-
-	// APIKey（Ollama 除外，其他 Provider 必需）
-	APIKey string
-
-	// 可选字段（有默认值）
-	Model   string
-	BaseURL string
-
-	// 高级配置
-	Headers map[string]string // 额外请求头
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
 // 工厂函数
 // ═══════════════════════════════════════════════════════════════════════════
 
 // New 创建 Provider
-func New(cfg *Config) (llm.Provider, error) {
+func New(cfg *llm.Config) (llm.Provider, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("config is required")
 	}
@@ -84,8 +64,19 @@ func New(cfg *Config) (llm.Provider, error) {
 	}
 }
 
+// extractHeaders 从 Extra 中提取 headers
+func extractHeaders(cfg *llm.Config) map[string]string {
+	if cfg.Extra == nil {
+		return nil
+	}
+	if h, ok := cfg.Extra["headers"].(map[string]string); ok {
+		return h
+	}
+	return nil
+}
+
 // newOpenAI 创建 OpenAI 兼容 Provider
-func newOpenAI(cfg *Config, apiKey string, ptype llm.ProviderType) (llm.Provider, error) {
+func newOpenAI(cfg *llm.Config, apiKey string, ptype llm.ProviderType) (llm.Provider, error) {
 	baseURL := cfg.BaseURL
 	if baseURL == "" {
 		baseURL = ptype.DefaultBaseURL()
@@ -100,12 +91,13 @@ func newOpenAI(cfg *Config, apiKey string, ptype llm.ProviderType) (llm.Provider
 		APIKey:  apiKey,
 		BaseURL: baseURL,
 		Model:   model,
-		Headers: cfg.Headers,
+		Timeout: cfg.Timeout,
+		Headers: extractHeaders(cfg),
 	})
 }
 
 // newAnthropic 创建 Anthropic Provider
-func newAnthropic(cfg *Config, apiKey string) (llm.Provider, error) {
+func newAnthropic(cfg *llm.Config, apiKey string) (llm.Provider, error) {
 	baseURL := cfg.BaseURL
 	if baseURL == "" {
 		baseURL = llm.ProviderTypeAnthropic.DefaultBaseURL()
@@ -120,12 +112,13 @@ func newAnthropic(cfg *Config, apiKey string) (llm.Provider, error) {
 		APIKey:  apiKey,
 		BaseURL: baseURL,
 		Model:   model,
-		Headers: cfg.Headers,
+		Timeout: cfg.Timeout,
+		Headers: extractHeaders(cfg),
 	})
 }
 
 // newGemini 创建 Gemini Provider
-func newGemini(cfg *Config, apiKey string) (llm.Provider, error) {
+func newGemini(cfg *llm.Config, apiKey string) (llm.Provider, error) {
 	baseURL := cfg.BaseURL
 	if baseURL == "" {
 		baseURL = llm.ProviderTypeGemini.DefaultBaseURL()
@@ -140,7 +133,8 @@ func newGemini(cfg *Config, apiKey string) (llm.Provider, error) {
 		APIKey:  apiKey,
 		BaseURL: baseURL,
 		Model:   model,
-		Headers: cfg.Headers,
+		Timeout: cfg.Timeout,
+		Headers: extractHeaders(cfg),
 	})
 }
 
@@ -154,7 +148,7 @@ func LocalMock() llm.Provider {
 }
 
 // Must 创建 Provider，失败时 panic
-func Must(cfg *Config) llm.Provider {
+func Must(cfg *llm.Config) llm.Provider {
 	p, err := New(cfg)
 	if err != nil {
 		panic(err)
