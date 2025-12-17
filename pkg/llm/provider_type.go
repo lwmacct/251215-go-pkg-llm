@@ -1,5 +1,7 @@
 package llm
 
+import "os"
+
 // ProviderType LLM Provider 类型
 type ProviderType string
 
@@ -44,6 +46,31 @@ const (
 	ProviderTypeMistral ProviderType = "mistral"
 )
 
+// providerMeta Provider 元数据
+type providerMeta struct {
+	openAICompatible bool
+	baseURL          string
+	model            string
+	envVarName       string
+}
+
+// providerRegistry 集中管理所有 Provider 配置
+var providerRegistry = map[ProviderType]providerMeta{
+	ProviderTypeOpenAI:     {true, "https://api.openai.com/v1", "gpt-4o-mini", "OPENAI_API_KEY"},
+	ProviderTypeOpenRouter: {true, "https://openrouter.ai/api/v1", "anthropic/claude-haiku-4.5", "OPENROUTER_API_KEY"},
+	ProviderTypeAnthropic:  {false, "https://api.anthropic.com/v1", "claude-3-5-haiku-latest", "ANTHROPIC_API_KEY"},
+	ProviderTypeDeepSeek:   {true, "https://api.deepseek.com/v1", "deepseek-chat", "DEEPSEEK_API_KEY"},
+	ProviderTypeOllama:     {true, "http://localhost:11434/v1", "llama3.2", ""},
+	ProviderTypeAzure:      {true, "", "", "AZURE_API_KEY"},
+	ProviderTypeGemini:     {false, "https://generativelanguage.googleapis.com/v1beta", "gemini-1.5-flash", "GOOGLE_API_KEY"},
+	ProviderTypeLocalMock:  {false, "", "", ""},
+	ProviderTypeGLM:        {true, "https://open.bigmodel.cn/api/paas/v4", "glm-4-flash", "BIGMODEL_API_KEY"},
+	ProviderTypeDoubao:     {true, "https://ark.cn-beijing.volces.com/api/v3", "", "DOUBAO_API_KEY"},
+	ProviderTypeMoonshot:   {true, "https://api.moonshot.cn/v1", "moonshot-v1-128k", "MOONSHOT_API_KEY"},
+	ProviderTypeGroq:       {true, "https://api.groq.com/openai/v1", "llama-3.3-70b-versatile", "GROQ_API_KEY"},
+	ProviderTypeMistral:    {true, "https://api.mistral.ai/v1", "mistral-large-latest", "MISTRAL_API_KEY"},
+}
+
 // String 返回字符串表示
 func (t ProviderType) String() string {
 	return string(t)
@@ -51,72 +78,29 @@ func (t ProviderType) String() string {
 
 // IsOpenAICompatible 判断是否为 OpenAI 兼容协议
 func (t ProviderType) IsOpenAICompatible() bool {
-	switch t {
-	case ProviderTypeOpenAI, ProviderTypeOpenRouter, ProviderTypeDeepSeek,
-		ProviderTypeOllama, ProviderTypeAzure, ProviderTypeGLM, ProviderTypeDoubao,
-		ProviderTypeMoonshot, ProviderTypeGroq, ProviderTypeMistral:
-		return true
-	default:
-		return false
-	}
+	return providerRegistry[t].openAICompatible
 }
 
 // DefaultBaseURL 返回默认 Base URL
 func (t ProviderType) DefaultBaseURL() string {
-	switch t {
-	case ProviderTypeOpenAI:
-		return "https://api.openai.com/v1"
-	case ProviderTypeOpenRouter:
-		return "https://openrouter.ai/api/v1"
-	case ProviderTypeAnthropic:
-		return "https://api.anthropic.com/v1"
-	case ProviderTypeDeepSeek:
-		return "https://api.deepseek.com/v1"
-	case ProviderTypeOllama:
-		return "http://localhost:11434/v1"
-	case ProviderTypeGemini:
-		return "https://generativelanguage.googleapis.com/v1beta"
-	case ProviderTypeGLM:
-		return "https://open.bigmodel.cn/api/paas/v4"
-	case ProviderTypeDoubao:
-		return "https://ark.cn-beijing.volces.com/api/v3"
-	case ProviderTypeMoonshot:
-		return "https://api.moonshot.cn/v1"
-	case ProviderTypeGroq:
-		return "https://api.groq.com/openai/v1"
-	case ProviderTypeMistral:
-		return "https://api.mistral.ai/v1"
-	default:
-		return ""
-	}
+	return providerRegistry[t].baseURL
 }
 
 // DefaultModel 返回默认模型
 func (t ProviderType) DefaultModel() string {
-	switch t {
-	case ProviderTypeOpenAI:
-		return "gpt-4o-mini"
-	case ProviderTypeOpenRouter:
-		return "anthropic/claude-haiku-4.5"
-	case ProviderTypeAnthropic:
-		return "claude-3-5-haiku-latest"
-	case ProviderTypeDeepSeek:
-		return "deepseek-chat"
-	case ProviderTypeOllama:
-		return "llama3.2"
-	case ProviderTypeGemini:
-		return "gemini-1.5-flash"
-	case ProviderTypeGLM:
-		return "glm-4-flash"
-	case ProviderTypeDoubao:
-		return "" // 需要用户指定 endpoint_id
-	case ProviderTypeMoonshot:
-		return "moonshot-v1-128k"
-	case ProviderTypeGroq:
-		return "llama-3.3-70b-versatile"
-	case ProviderTypeMistral:
-		return "mistral-large-latest"
-	default:
-		return ""
+	return providerRegistry[t].model
+}
+
+// GetEnvAPIKey 获取对应环境变量的 API Key 值
+// 优先使用自定义环境变量名，回退到默认环境变量名
+func (t ProviderType) GetEnvAPIKey(customEnvNames ...string) string {
+	for _, name := range customEnvNames {
+		if val := os.Getenv(name); val != "" {
+			return val
+		}
 	}
+	if name := providerRegistry[t].envVarName; name != "" {
+		return os.Getenv(name)
+	}
+	return ""
 }

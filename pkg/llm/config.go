@@ -62,13 +62,17 @@ type Config struct {
 }
 
 // DefaultConfig 返回默认的 Provider 配置
-
-func DefaultConfig() Config {
+// 不指定类型时默认使用 OpenRouter
+func DefaultConfig(types ...ProviderType) Config {
+	t := ProviderTypeOpenRouter
+	if len(types) > 0 {
+		t = types[0]
+	}
 	return Config{
-		Type:       ProviderTypeOpenRouter,
-		APIKey:     `{{.OPENROUTER_API_KEY}}`,
-		BaseURL:    ProviderTypeOpenRouter.DefaultBaseURL(),
-		Model:      ProviderTypeOpenRouter.DefaultModel(),
+		Type:       t,
+		APIKey:     t.GetEnvAPIKey(),
+		BaseURL:    t.DefaultBaseURL(),
+		Model:      t.DefaultModel(),
 		Timeout:    120 * time.Second,
 		MaxRetries: 3,
 	}
