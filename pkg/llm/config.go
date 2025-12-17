@@ -1,6 +1,8 @@
 package llm
 
-import "time"
+import (
+	"time"
+)
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Provider 配置
@@ -61,12 +63,12 @@ type Config struct {
 
 // DefaultConfig 返回默认的 Provider 配置
 
-func DefaultConfig() *Config {
-	return &Config{
+func DefaultConfig() Config {
+	return Config{
 		Type:       ProviderTypeOpenRouter,
 		APIKey:     `{{.OPENROUTER_API_KEY}}`,
-		BaseURL:    "https://openrouter.ai/api/v1",
-		Model:      "anthropic/claude-haiku-4.5",
+		BaseURL:    ProviderTypeOpenRouter.DefaultBaseURL(),
+		Model:      ProviderTypeOpenRouter.DefaultModel(),
 		Timeout:    120 * time.Second,
 		MaxRetries: 3,
 	}
