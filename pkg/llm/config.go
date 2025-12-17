@@ -59,9 +59,14 @@ type Config struct {
 	Extra map[string]any `koanf:"extra"`
 }
 
+// DefaultConfig 返回默认的 Provider 配置
+
 func DefaultConfig() *Config {
 	return &Config{
 		Type:       ProviderTypeOpenRouter,
+		APIKey:     `{{.OPENROUTER_API_KEY}}`,
+		BaseURL:    "https://openrouter.ai/api/v1",
+		Model:      "anthropic/claude-haiku-4.5",
 		Timeout:    120 * time.Second,
 		MaxRetries: 3,
 	}
