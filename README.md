@@ -4,9 +4,9 @@
 
 - [特性](#特性) `:13+8`
 - [安装](#安装) `:21+6`
-- [快速开始](#快速开始) `:27+28`
-- [Provider 类型](#provider-类型) `:55+17`
-- [文档](#文档) `:72+3`
+- [快速开始](#快速开始) `:27+35`
+- [Provider 类型](#provider-类型) `:62+17`
+- [文档](#文档) `:79+3`
 
 <!--TOC-->
 
@@ -38,11 +38,18 @@ import (
 )
 
 func main() {
-    p, _ := provider.New(&provider.Config{
-        Type:   llm.ProviderTypeOpenAI,
-        APIKey: "sk-xxx",
-    })
+    // 方式一：零配置（从环境变量 OPENROUTER_API_KEY 读取）
+    p, _ := provider.Default()
     defer p.Close()
+
+    // 方式二：指定 Provider 类型（从环境变量 OPENAI_API_KEY 读取）
+    // p, _ := provider.Default(llm.ProviderTypeOpenAI)
+
+    // 方式三：完全自定义配置
+    // p, _ := provider.New(&llm.Config{
+    //     Type:   llm.ProviderTypeOpenAI,
+    //     APIKey: "sk-xxx",
+    // })
 
     resp, _ := p.Complete(context.Background(), []llm.Message{
         {Role: llm.RoleUser, Content: "Hello!"},

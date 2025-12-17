@@ -4,9 +4,16 @@
 //   - [Provider]: 统一的 LLM 调用抽象
 //   - [Message]: 对话消息结构
 //   - [Event]: 流式事件定义
-//   - 环境变量探测：自动配置
+//   - [ProviderType]: Provider 类型与元数据
 //
 // 完整使用示例请参考 example_test.go。
+//
+// # 快速开始
+//
+// 零配置使用（从环境变量读取 API Key）：
+//
+//	p, err := provider.Default()                        // 默认 OpenRouter
+//	p, err := provider.Default(llm.ProviderTypeOpenAI)  // 指定类型
 //
 // # 核心类型
 //
@@ -24,47 +31,29 @@
 //
 // # Provider 类型
 //
-// [ProviderType] 枚举支持的 Provider 类型：
-//   - ProviderTypeOpenAI: OpenAI 及兼容服务
-//   - ProviderTypeAnthropic: Anthropic Claude
-//   - ProviderTypeOpenRouter: OpenRouter 聚合服务
+// [ProviderType] 枚举支持的 Provider 类型，并提供元数据查询：
+//   - DefaultBaseURL(): 默认 API 地址
+//   - DefaultModel(): 默认模型
+//   - GetEnvAPIKey(): 从环境变量获取 API Key
+//   - IsOpenAICompatible(): 是否兼容 OpenAI 协议
 //
-// # 环境变量
-//
-// 本包支持从环境变量自动探测配置：
-//
-// API Key（按优先级）:
-//   - OPENAI_API_KEY
-//   - ANTHROPIC_API_KEY
-//   - OPENROUTER_API_KEY
-//   - LLM_API_KEY
-//
-// Base URL:
-//   - OPENAI_BASE_URL
-//   - OPENAI_API_BASE
-//   - LLM_BASE_URL
-//
-// Model:
-//   - OPENAI_MODEL
-//   - LLM_MODEL
-//   - MODEL
+// 支持的 Provider：
+//   - OpenAI、Anthropic、Gemini（原生协议）
+//   - OpenRouter、DeepSeek、Ollama、Azure、GLM、Doubao、Moonshot、Groq、Mistral（OpenAI 兼容）
 //
 // # 协议实现
 //
 // 具体的 Provider 实现位于子包：
 //   - [pkg/llm/provider/openai]: OpenAI 协议实现
 //   - [pkg/llm/provider/anthropic]: Anthropic 协议实现
+//   - [pkg/llm/provider/gemini]: Gemini 协议实现
 //   - [pkg/llm/provider/localmock]: 本地 Mock 实现（用于测试）
-//
-// # 与 Agent 包的关系
-//
-// 本包是底层协议抽象，[pkg/agent] 包在此基础上构建 Agent 功能。
 //
 // # 包文件组织
 //
 //   - types.go: Provider 接口、Options、Response
 //   - message.go: Message、ContentBlock、ToolCall
 //   - event.go: Event、EventType
-//   - provider_type.go: ProviderType 枚举
-//   - env.go: 环境变量探测
+//   - provider_type.go: ProviderType 枚举与元数据
+//   - config.go: Config 配置与 DefaultConfig
 package llm

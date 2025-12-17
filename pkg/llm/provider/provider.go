@@ -155,3 +155,18 @@ func Must(cfg *llm.Config) llm.Provider {
 	}
 	return p
 }
+
+// Default 使用默认配置创建 Provider
+// 不指定类型时默认使用 OpenRouter，从对应环境变量读取 APIKey
+func Default(types ...llm.ProviderType) (llm.Provider, error) {
+	return New(llm.DefaultConfig(types...))
+}
+
+// MustDefault 使用默认配置创建 Provider，失败时 panic
+func MustDefault(types ...llm.ProviderType) llm.Provider {
+	p, err := Default(types...)
+	if err != nil {
+		panic(err)
+	}
+	return p
+}

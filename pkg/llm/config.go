@@ -12,35 +12,24 @@ import (
 //
 // 用于通过统一工厂函数创建不同类型的 LLM Provider。
 //
-// 基本用法：
+// 零配置（推荐）：
 //
-//	cfg := &llm.Config{
+//	p, err := provider.Default()                        // 默认 OpenRouter
+//	p, err := provider.Default(llm.ProviderTypeOpenAI)  // 指定类型
+//
+// 自定义配置：
+//
+//	cfg := llm.DefaultConfig(llm.ProviderTypeOpenAI)
+//	cfg.Model = "gpt-4o"
+//	p, err := provider.New(cfg)
+//
+// 完全手动配置：
+//
+//	p, err := provider.New(&llm.Config{
 //	    Type:   llm.ProviderTypeOpenAI,
 //	    APIKey: "sk-xxx",
-//	    Model:  "gpt-4",
-//	}
-//
-// 生产环境配置：
-//
-//	cfg := &llm.Config{
-//	    Type:       llm.ProviderTypeOpenAI,
-//	    APIKey:     "sk-xxx",
-//	    Model:      "gpt-4o",
-//	    Timeout:    2 * time.Minute,
-//	    MaxRetries: 3,
-//	}
-//
-// 云平台部署（Azure/Vertex AI）：
-//
-//	cfg := &llm.Config{
-//	    Type:   llm.ProviderTypeAzure,
-//	    APIKey: "xxx",
 //	    Model:  "gpt-4o",
-//	    Extra: map[string]any{
-//	        "deployment":  "my-deployment",
-//	        "api_version": "2025-01-15",
-//	    },
-//	}
+//	})
 
 type Config struct {
 	// Provider 类型（默认 OpenRouter）
@@ -63,12 +52,12 @@ type Config struct {
 
 // DefaultConfig 返回默认的 Provider 配置
 // 不指定类型时默认使用 OpenRouter
-func DefaultConfig(types ...ProviderType) Config {
+func DefaultConfig(types ...ProviderType) *Config {
 	t := ProviderTypeOpenRouter
 	if len(types) > 0 {
 		t = types[0]
 	}
-	return Config{
+	return &Config{
 		Type:       t,
 		APIKey:     t.GetEnvAPIKey(),
 		BaseURL:    t.DefaultBaseURL(),
