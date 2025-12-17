@@ -60,8 +60,8 @@ func DefaultConfig(types ...ProviderType) *Config {
 	return &Config{
 		Type:       t,
 		APIKey:     t.GetEnvAPIKey(),
-		BaseURL:    t.DefaultBaseURL(),
-		Model:      t.DefaultModel(),
+		BaseURL:    t.GetEnvBaseURL(),
+		Model:      t.GetEnvModel(),
 		Timeout:    120 * time.Second,
 		MaxRetries: 3,
 	}
