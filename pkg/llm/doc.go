@@ -47,7 +47,7 @@
 //   - [pkg/llm/provider/openai]: OpenAI 协议实现
 //   - [pkg/llm/provider/anthropic]: Anthropic 协议实现
 //   - [pkg/llm/provider/gemini]: Gemini 协议实现
-//   - [pkg/llm/provider/localmock]: 本地 Mock 实现（用于测试）
+//   - [pkg/llm/provider/mock]: 本地 Mock 实现（用于测试）
 //
 // # 包文件组织
 //

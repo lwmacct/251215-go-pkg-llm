@@ -1,4 +1,4 @@
-package localmock
+package mock
 
 import (
 	"context"
@@ -49,9 +49,9 @@ type MessageResponseFunc func(messages []llm.Message, callCount int) llm.Message
 //
 // 使用示例:
 //
-//	client := localmock.New()                           // 使用内嵌示例配置
-//	client := localmock.New("custom/config.yaml")       // 使用指定配置文件
-//	client := localmock.New(localmock.WithDelay(100ms)) // 使用 Option
+//	client := mock.New()                           // 使用内嵌示例配置
+//	client := mock.New("custom/config.yaml")       // 使用指定配置文件
+//	client := mock.New(mock.WithDelay(100ms)) // 使用 Option
 func New(args ...any) *Client {
 	c := &Client{
 		response: "This is a mock response.",

@@ -1,4 +1,4 @@
-// Package localmock 提供本地 Mock LLM Provider 实现
+// Package mock 提供本地 Mock LLM Provider 实现
 //
 // 本包实现了 [ts_provider.Provider] 接口，用于测试和开发场景，
 // 无需真实的 LLM API 即可验证业务逻辑。
@@ -16,7 +16,7 @@
 // # 快速开始
 //
 //	// 创建 client（无参数时使用默认配置 testdata/unified.yaml）
-//	client := localmock.New()
+//	client := mock.New()
 //	defer client.Close()
 //
 //	// 指定使用某个场景
@@ -29,11 +29,11 @@
 //
 // 通过 [Client.UseScenario] 指定使用哪个场景：
 //
-//	cfg := &localmock.Config{
-//	    Scenarios: []localmock.Scenario{
+//	cfg := &mock.Config{
+//	    Scenarios: []mock.Scenario{
 //	        {
 //	            Name: "booking",
-//	            Turns: []localmock.Turn{
+//	            Turns: []mock.Turn{
 //	                {User: "订餐", Assistant: "几位？"},
 //	                {User: "3位", Assistant: "什么时间？"},
 //	                {User: "7点", Assistant: "预订完成！"},
@@ -42,7 +42,7 @@
 //	    },
 //	}
 //
-//	client := localmock.New(localmock.WithConfig(cfg))
+//	client := mock.New(mock.WithConfig(cfg))
 //	client.UseScenario("booking")
 //
 //	// 每次调用自动推进到下一轮
@@ -106,4 +106,4 @@
 // # 线程安全
 //
 // [Client] 是线程安全的，可以并发调用 Complete 和 Stream 方法。
-package localmock
+package mock

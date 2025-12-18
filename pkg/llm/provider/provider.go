@@ -9,7 +9,7 @@
 //	})
 //
 //	// 本地 Mock（无需配置）
-//	p := provider.LocalMock()
+//	p := provider.Mock()
 package provider
 
 import (
@@ -18,7 +18,7 @@ import (
 	"github.com/lwmacct/251215-go-pkg-llm/pkg/llm"
 	"github.com/lwmacct/251215-go-pkg-llm/pkg/llm/provider/anthropic"
 	"github.com/lwmacct/251215-go-pkg-llm/pkg/llm/provider/gemini"
-	"github.com/lwmacct/251215-go-pkg-llm/pkg/llm/provider/localmock"
+	"github.com/lwmacct/251215-go-pkg-llm/pkg/llm/provider/mock"
 	"github.com/lwmacct/251215-go-pkg-llm/pkg/llm/provider/openai"
 )
 
@@ -142,9 +142,9 @@ func newGemini(cfg *llm.Config, apiKey string) (llm.Provider, error) {
 // 便捷函数
 // ═══════════════════════════════════════════════════════════════════════════
 
-// LocalMock 创建 LocalMock Provider（用于测试）
-func LocalMock() llm.Provider {
-	return localmock.New()
+// Mock 创建 Mock Provider（用于测试）
+func Mock() llm.Provider {
+	return mock.New()
 }
 
 // Must 创建 Provider，失败时 panic

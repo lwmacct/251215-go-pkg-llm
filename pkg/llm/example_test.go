@@ -5,13 +5,13 @@ import (
 	"fmt"
 
 	"github.com/lwmacct/251215-go-pkg-llm/pkg/llm"
-	"github.com/lwmacct/251215-go-pkg-llm/pkg/llm/provider/localmock"
+	"github.com/lwmacct/251215-go-pkg-llm/pkg/llm/provider/mock"
 )
 
 // Example_basic 展示 LLM 包的基本用法
 func Example_basic() {
 	// 创建 Provider
-	provider := localmock.New(localmock.WithResponse("Hello! I can help you."))
+	provider := mock.New(mock.WithResponse("Hello! I can help you."))
 	defer func() { _ = provider.Close() }()
 
 	// 构建消息
@@ -73,7 +73,7 @@ func Example_toolCalls() {
 
 // Example_stream 展示流式事件处理
 func Example_stream() {
-	provider := localmock.New(localmock.WithResponse("Streaming response"))
+	provider := mock.New(mock.WithResponse("Streaming response"))
 	defer func() { _ = provider.Close() }()
 
 	messages := []llm.Message{

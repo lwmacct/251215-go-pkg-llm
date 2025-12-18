@@ -1,4 +1,4 @@
-package localmock
+package mock
 
 import (
 	"context"

@@ -27,8 +27,8 @@ const (
 	// ProviderTypeGemini Google Gemini API
 	ProviderTypeGemini ProviderType = "gemini"
 
-	// ProviderTypeLocalMock 本地 Mock（测试用）
-	ProviderTypeLocalMock ProviderType = "localmock"
+	// ProviderTypeMock 本地 Mock（测试用）
+	ProviderTypeMock ProviderType = "mock"
 
 	// ProviderTypeGLM 智谱 GLM API（OpenAI 兼容）
 	ProviderTypeGLM ProviderType = "glm"
@@ -65,7 +65,7 @@ var providerRegistry = map[ProviderType]providerMeta{
 	ProviderTypeOllama:     {true, "http://localhost:11434/v1", "llama3.2", "", "OLLAMA_MODEL", "OLLAMA_BASE_URL"},
 	ProviderTypeAzure:      {true, "", "", "AZURE_API_KEY", "AZURE_MODEL", "AZURE_BASE_URL"},
 	ProviderTypeGemini:     {false, "https://generativelanguage.googleapis.com/v1beta", "gemini-1.5-flash", "GOOGLE_API_KEY", "GOOGLE_MODEL", "GOOGLE_BASE_URL"},
-	ProviderTypeLocalMock:  {false, "", "", "", "", ""},
+	ProviderTypeMock:       {false, "", "", "", "", ""},
 	ProviderTypeGLM:        {true, "https://open.bigmodel.cn/api/paas/v4", "glm-4-flash", "BIGMODEL_API_KEY", "BIGMODEL_MODEL", "BIGMODEL_BASE_URL"},
 	ProviderTypeDoubao:     {true, "https://ark.cn-beijing.volces.com/api/v3", "", "DOUBAO_API_KEY", "DOUBAO_MODEL", "DOUBAO_BASE_URL"},
 	ProviderTypeMoonshot:   {true, "https://api.moonshot.cn/v1", "moonshot-v1-128k", "MOONSHOT_API_KEY", "MOONSHOT_MODEL", "MOONSHOT_BASE_URL"},

@@ -1,16 +1,16 @@
-package localmock_test
+package mock_test
 
 import (
 	"context"
 	"fmt"
 
 	"github.com/lwmacct/251215-go-pkg-llm/pkg/llm"
-	"github.com/lwmacct/251215-go-pkg-llm/pkg/llm/provider/localmock"
+	"github.com/lwmacct/251215-go-pkg-llm/pkg/llm/provider/mock"
 )
 
 func Example_basic() {
-	// 使用 Option 创建 localmock client
-	client := localmock.New(localmock.WithResponse("Hello, I am a mock assistant."))
+	// 使用 Option 创建 mock client
+	client := mock.New(mock.WithResponse("Hello, I am a mock assistant."))
 	defer func() { _ = client.Close() }()
 
 	// 构造消息
@@ -30,7 +30,7 @@ func Example_basic() {
 }
 
 func Example_clientStream() {
-	client := localmock.New(localmock.WithResponse("Hi!"))
+	client := mock.New(mock.WithResponse("Hi!"))
 	defer func() { _ = client.Close() }()
 
 	stream, err := client.Stream(context.Background(), nil, nil)
@@ -52,7 +52,7 @@ func Example_clientStream() {
 }
 
 func Example_withResponse() {
-	client := localmock.New(localmock.WithResponse("Custom response"))
+	client := mock.New(mock.WithResponse("Custom response"))
 	defer func() { _ = client.Close() }()
 
 	resp, _ := client.Complete(context.Background(), nil, nil)
@@ -62,18 +62,18 @@ func Example_withResponse() {
 
 func Example_clientUseScenario() {
 	// 使用配置对象创建客户端
-	cfg := &localmock.Config{
+	cfg := &mock.Config{
 		DefaultResponse: "Default answer",
-		Scenarios: []localmock.Scenario{
+		Scenarios: []mock.Scenario{
 			{
 				Name: "greeting",
-				Turns: []localmock.Turn{
+				Turns: []mock.Turn{
 					{User: "hello", Assistant: "Hi there!"},
 				},
 			},
 			{
 				Name: "booking",
-				Turns: []localmock.Turn{
+				Turns: []mock.Turn{
 					{User: "book", Assistant: "几位？"},
 					{User: "3位", Assistant: "什么时间？"},
 					{User: "7点", Assistant: "预订完成！"},
@@ -82,7 +82,7 @@ func Example_clientUseScenario() {
 		},
 	}
 
-	client := localmock.New(localmock.WithConfig(cfg))
+	client := mock.New(mock.WithConfig(cfg))
 	defer func() { _ = client.Close() }()
 
 	ctx := context.Background()
@@ -110,7 +110,7 @@ func Example_clientUseScenario() {
 
 func Example_withConfigFile() {
 	// 从 YAML 文件加载配置
-	client := localmock.New(localmock.WithConfigFile("examples/unified.yaml"))
+	client := mock.New(mock.WithConfigFile("examples/unified.yaml"))
 	defer func() { _ = client.Close() }()
 
 	// 使用 greeting 场景
@@ -126,8 +126,8 @@ func Example_withConfigFile() {
 
 func Example_loadExampleConfig() {
 	// 加载内嵌的示例配置
-	cfg, _ := localmock.LoadExampleConfig()
-	client := localmock.New(localmock.WithConfig(cfg))
+	cfg, _ := mock.LoadExampleConfig()
+	client := mock.New(mock.WithConfig(cfg))
 	defer func() { _ = client.Close() }()
 
 	// 使用 weather 场景
@@ -143,7 +143,7 @@ func Example_loadExampleConfig() {
 
 func Example_withResponses() {
 	// 设置响应队列
-	client := localmock.New(localmock.WithResponses(
+	client := mock.New(mock.WithResponses(
 		"First response",
 		"Second response",
 		"Third response",
@@ -174,7 +174,7 @@ func Example_withResponses() {
 }
 
 func Example_clientGetLastInput() {
-	client := localmock.New(localmock.WithResponse("OK"))
+	client := mock.New(mock.WithResponse("OK"))
 	defer func() { _ = client.Close() }()
 
 	ctx := context.Background()
