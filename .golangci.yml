@@ -42,6 +42,7 @@ linters:
     # 不合理的优化
     - tagalign # struct tag 对齐, 负优化
     - tagliatelle # JSON tag 使用 snake_case 以兼容 OpenAI/Anthropic/Gemini API
+    - goconst # 协议适配和测试中的字符串字面量是合理的
 
   settings:
     govet:
@@ -55,9 +56,6 @@ linters:
     gocritic: {}
     exhaustive:
       default-signifies-exhaustive: true
-    goconst:
-      ignore-tests: true # 测试文件中的重复字符串通常是为了可读性
-      min-occurrences: 6 # 协议适配中的字符串字面量在 switch 中使用是合理的
     nestif:
       min-complexity: 8 # JSON 解析等场景允许适度嵌套
 
