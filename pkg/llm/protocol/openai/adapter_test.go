@@ -6,6 +6,7 @@ import (
 
 	"github.com/lwmacct/251215-go-pkg-llm/pkg/llm"
 	"github.com/lwmacct/251215-go-pkg-llm/pkg/llm/core"
+	"github.com/stretchr/testify/require"
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -367,9 +368,7 @@ func TestAdapter_ConvertUsage_Basic(t *testing.T) {
 
 	usage := adapter.ConvertUsage(apiResp)
 
-	if usage == nil {
-		t.Fatal("Expected usage, got nil")
-	}
+	require.NotNil(t, usage, "Expected usage, got nil")
 
 	if usage.InputTokens != 100 {
 		t.Errorf("Expected InputTokens 100, got %d", usage.InputTokens)
@@ -399,9 +398,7 @@ func TestAdapter_ConvertUsage_WithReasoningTokens(t *testing.T) {
 
 	usage := adapter.ConvertUsage(apiResp)
 
-	if usage == nil {
-		t.Fatal("Expected usage, got nil")
-	}
+	require.NotNil(t, usage, "Expected usage, got nil")
 
 	if usage.ReasoningTokens != 150 {
 		t.Errorf("Expected ReasoningTokens 150, got %d", usage.ReasoningTokens)
@@ -423,9 +420,7 @@ func TestAdapter_ConvertUsage_WithCachedTokens(t *testing.T) {
 
 	usage := adapter.ConvertUsage(apiResp)
 
-	if usage == nil {
-		t.Fatal("Expected usage, got nil")
-	}
+	require.NotNil(t, usage, "Expected usage, got nil")
 
 	if usage.CachedTokens != 80 {
 		t.Errorf("Expected CachedTokens 80, got %d", usage.CachedTokens)

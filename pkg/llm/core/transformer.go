@@ -119,16 +119,12 @@ func (t *Transformer) BuildAPIMessages(
 //	msg, reason, usage := transformer.ParseAPIResponse(apiResp)
 //	fmt.Println("完成原因:", reason)
 //	fmt.Println("使用 tokens:", usage.TotalTokens)
-func (t *Transformer) ParseAPIResponse(apiResp map[string]any) (
-	msg llm.Message,
-	finishReason string,
-	usage *llm.TokenUsage,
-) {
+func (t *Transformer) ParseAPIResponse(apiResp map[string]any) (llm.Message, string, *llm.TokenUsage) {
 	// 委托 adapter 转换消息
-	msg, finishReason = t.adapter.ConvertFromAPI(apiResp)
+	msg, finishReason := t.adapter.ConvertFromAPI(apiResp)
 
 	// 委托 adapter 解析使用量
-	usage = t.adapter.ConvertUsage(apiResp)
+	usage := t.adapter.ConvertUsage(apiResp)
 
-	return
+	return msg, finishReason, usage
 }

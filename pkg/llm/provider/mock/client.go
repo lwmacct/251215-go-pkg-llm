@@ -225,55 +225,6 @@ func (c *Client) GetScenarioUserInputs(name string) []string {
 	return inputs
 }
 
-// getScenarioResponse 获取场景响应（内部方法，需要在锁内调用）
-func (c *Client) getScenarioResponse(messages []llm.Message) *llm.Message {
-	if c.currentScenario == "" {
-		return nil
-	}
-
-	s, ok := c.scenarios[c.currentScenario]
-	if !ok {
-		return nil
-	}
-
-	// 构建响应
-	data := createTemplateData(messages)
-	msg := s.buildTurnResponse(messages, data)
-
-	// 推进轮次
-	s.turnIdx++
-
-	return &msg
-}
-
-// getResponse 获取当前响应（内部方法，需要在锁内调用）
-func (c *Client) getResponse(messages []llm.Message) string {
-	// 优先使用动态响应函数
-	if c.respFunc != nil {
-		return c.respFunc(messages, c.counter)
-	}
-
-	// 其次使用响应队列
-	if len(c.responses) > 0 {
-		resp := c.responses[c.respIdx%len(c.responses)]
-		c.respIdx++
-		return resp
-	}
-
-	// 最后使用默认响应
-	return c.response
-}
-
-// getMessage 获取完整消息响应（内部方法，需要在锁内调用）
-// 如果设置了 msgFunc 则返回完整消息，否则返回 nil
-func (c *Client) getMessage(messages []llm.Message) *llm.Message {
-	if c.msgFunc != nil {
-		msg := c.msgFunc(messages, c.counter)
-		return &msg
-	}
-	return nil
-}
-
 // Complete 同步完成
 func (c *Client) Complete(ctx context.Context, messages []llm.Message, opts *llm.Options) (*llm.Response, error) {
 	c.mu.Lock()
@@ -549,6 +500,59 @@ func (c *Client) GetAllInputs() []string {
 		}
 	}
 	return inputs
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 私有方法
+// ═══════════════════════════════════════════════════════════════════════════
+
+// getScenarioResponse 获取场景响应（内部方法，需要在锁内调用）
+func (c *Client) getScenarioResponse(messages []llm.Message) *llm.Message {
+	if c.currentScenario == "" {
+		return nil
+	}
+
+	s, ok := c.scenarios[c.currentScenario]
+	if !ok {
+		return nil
+	}
+
+	// 构建响应
+	data := createTemplateData(messages)
+	msg := s.buildTurnResponse(messages, data)
+
+	// 推进轮次
+	s.turnIdx++
+
+	return &msg
+}
+
+// getResponse 获取当前响应（内部方法，需要在锁内调用）
+func (c *Client) getResponse(messages []llm.Message) string {
+	// 优先使用动态响应函数
+	if c.respFunc != nil {
+		return c.respFunc(messages, c.counter)
+	}
+
+	// 其次使用响应队列
+	if len(c.responses) > 0 {
+		resp := c.responses[c.respIdx%len(c.responses)]
+		c.respIdx++
+		return resp
+	}
+
+	// 最后使用默认响应
+	return c.response
+}
+
+// getMessage 获取完整消息响应（内部方法，需要在锁内调用）
+// 如果设置了 msgFunc 则返回完整消息，否则返回 nil
+func (c *Client) getMessage(messages []llm.Message) *llm.Message {
+	if c.msgFunc != nil {
+		msg := c.msgFunc(messages, c.counter)
+		return &msg
+	}
+	return nil
 }
 
 // 编译时接口检查
