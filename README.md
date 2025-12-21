@@ -1,21 +1,23 @@
 # Go 语言 LLM 统一抽象层，提供多提供商的统一调用接口。
 
-<!--TOC-->
-
-- [特性](#特性) `:20+8`
-- [安装](#安装) `:28+6`
-- [快速开始](#快速开始) `:34+35`
-- [Provider 类型](#provider-类型) `:69+17`
-- [文档](#文档) `:86+3`
-
-<!--TOC-->
-
 [![License](https://img.shields.io/github/license/lwmacct/251215-go-pkg-llm)](LICENSE)
 [![Go Reference](https://pkg.go.dev/badge/github.com/lwmacct/251215-go-pkg-llm.svg)](https://pkg.go.dev/github.com/lwmacct/251215-go-pkg-llm)
 [![Go CI](https://github.com/lwmacct/251215-go-pkg-llm/actions/workflows/go-ci.yml/badge.svg)](https://github.com/lwmacct/251215-go-pkg-llm/actions/workflows/go-ci.yml)
 [![codecov](https://codecov.io/gh/lwmacct/251215-go-pkg-llm/branch/main/graph/badge.svg)](https://codecov.io/gh/lwmacct/251215-go-pkg-llm)
 [![Go Report Card](https://goreportcard.com/badge/github.com/lwmacct/251215-go-pkg-llm)](https://goreportcard.com/report/github.com/lwmacct/251215-go-pkg-llm)
 [![GitHub Tag](https://img.shields.io/github/v/tag/lwmacct/251215-go-pkg-llm?sort=semver)](https://github.com/lwmacct/251215-go-pkg-llm/tags)
+
+<!--TOC-->
+
+## Table of Contents
+
+- [特性](#特性) `:22+8`
+- [安装](#安装) `:30+6`
+- [快速开始](#快速开始) `:36+35`
+- [Provider 类型](#provider-类型) `:71+17`
+- [文档](#文档) `:88+3`
+
+<!--TOC-->
 
 ## 特性
 
