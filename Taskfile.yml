@@ -12,16 +12,12 @@ vars:
 
 includes:
   env:
-    taskfile: https://{{.TASK_REMOTE}}/env.yml
+    taskfile: https://{{.TASK_REMOTE}}/env.yml?ref=main
     optional: true
     flatten: true
 
   git:
-    taskfile: https://{{.TASK_REMOTE}}/git.yml
-    optional: true
-
-  go:
-    taskfile: https://{{.TASK_REMOTE}}/go.yml
+    taskfile: https://{{.TASK_REMOTE}}/git.yml?ref=main
     optional: true
 
   cmd:
