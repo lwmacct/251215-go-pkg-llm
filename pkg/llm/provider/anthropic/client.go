@@ -2,13 +2,8 @@ package anthropic
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
-	"fmt"
 	"maps"
 	"time"
-
-	"github.com/go-resty/resty/v2"
 
 	"github.com/lwmacct/251215-go-pkg-llm/pkg/llm"
 	"github.com/lwmacct/251215-go-pkg-llm/pkg/llm/core"
@@ -45,79 +40,69 @@ type Config struct {
 // 实现 [llm.Provider] 接口，支持同步和流式完成。
 //
 // 架构设计：
-//   - 使用 core.Transformer 处理消息转换
-//   - 使用 core.SSEParser 处理流式响应
+//   - 嵌入 core.BaseClient 复用通用逻辑
+//   - 保留 transformer 用于 buildRequest
 //   - 协议差异由 protocol/anthropic 适配器封装
 type Client struct {
+	*core.BaseClient
+
 	config      *Config
-	resty       *resty.Client
 	transformer *core.Transformer
-	sseParser   *core.SSEParser
 }
 
 // New 创建新的 Anthropic 客户端
 //
 // 参数 config 必须包含 APIKey。
 func New(config *Config) (*Client, error) {
-	if config == nil {
-		return nil, errors.New("config is required")
-	}
-	if config.APIKey == "" {
-		return nil, errors.New("API key is required")
-	}
-
-	// 应用默认值
-	baseURL := config.BaseURL
-	if baseURL == "" {
-		baseURL = "https://api.anthropic.com/v1"
+	// 创建 BaseClient
+	baseClient, err := core.NewBaseClient(
+		config,
+		anthropic.NewAdapter(),
+		anthropic.NewEventHandler(),
+	)
+	if err != nil {
+		return nil, err
 	}
 
-	model := config.Model
-	if model == "" {
-		model = "claude-3-5-haiku-latest"
-	}
-
-	timeout := config.Timeout
-	if timeout == 0 {
-		timeout = 120 * time.Second
-	}
-
-	anthropicVersion := config.AnthropicVersion
-	if anthropicVersion == "" {
-		anthropicVersion = "2023-06-01"
-	}
-
-	// 构建请求头（Anthropic 使用 X-Api-Key）
-	headers := map[string]string{
-		"X-Api-Key":         config.APIKey,
-		"anthropic-version": anthropicVersion,
-		"Content-Type":      "application/json",
-	}
-	maps.Copy(headers, config.Headers)
-
-	// 创建 resty 客户端
-	r := resty.New()
-	r.SetBaseURL(baseURL)
-	r.SetTimeout(timeout)
-	for k, v := range headers {
-		r.SetHeader(k, v)
-	}
+	// 创建 transformer 用于 buildRequest
+	transformer := core.NewTransformer(anthropic.NewAdapter())
 
 	// 保存处理后的配置
 	finalConfig := *config
-	finalConfig.Model = model
-	finalConfig.BaseURL = baseURL
+	if finalConfig.Model == "" {
+		finalConfig.Model = "claude-3-5-haiku-latest"
+	}
+	if finalConfig.BaseURL == "" {
+		finalConfig.BaseURL = "https://api.anthropic.com/v1"
+	}
+	if finalConfig.Timeout == 0 {
+		finalConfig.Timeout = 120 * time.Second
+	}
+	if finalConfig.AnthropicVersion == "" {
+		finalConfig.AnthropicVersion = "2023-06-01"
+	}
 
-	// 创建协议适配器和转换器
-	adapter := anthropic.NewAdapter()
-	eventHandler := anthropic.NewEventHandler()
-
-	return &Client{
+	client := &Client{
+		BaseClient:  baseClient,
 		config:      &finalConfig,
-		resty:       r,
-		transformer: core.NewTransformer(adapter),
-		sseParser:   core.NewSSEParser(eventHandler),
-	}, nil
+		transformer: transformer,
+	}
+
+	// 设置端点构建器（Anthropic 使用固定端点）
+	baseClient.SetEndpointBuilder(&anthropicEndpointBuilder{})
+
+	return client, nil
+}
+
+// anthropicEndpointBuilder Anthropic 端点构建器
+type anthropicEndpointBuilder struct{}
+
+func (b *anthropicEndpointBuilder) BuildCompleteEndpoint() string {
+	return "/messages"
+}
+
+func (b *anthropicEndpointBuilder) BuildStreamEndpoint() string {
+	return "/messages"
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -128,70 +113,14 @@ func New(config *Config) (*Client, error) {
 //
 // 实现 [llm.Provider] 接口。发送消息到 Claude 并等待完整响应。
 func (c *Client) Complete(ctx context.Context, messages []llm.Message, opts *llm.Options) (*llm.Response, error) {
-	body := c.buildRequest(messages, opts, false)
-	bodyBytes, err := json.Marshal(body)
-	if err != nil {
-		return nil, fmt.Errorf("marshal request: %w", err)
-	}
-
-	var apiResp map[string]any
-	resp, err := c.resty.R().
-		SetContext(ctx).
-		SetBody(bodyBytes).
-		SetResult(&apiResp).
-		Post("/messages")
-	if err != nil {
-		return nil, fmt.Errorf("request failed: %w", err)
-	}
-
-	if resp.StatusCode() >= 400 {
-		return nil, fmt.Errorf("API error: %d - %s", resp.StatusCode(), resp.String())
-	}
-
-	// 使用 Transformer 解析响应
-	msg, finishReason, usage := c.transformer.ParseAPIResponse(apiResp)
-
-	// 提取实际使用的模型
-	model := c.config.Model
-	if respModel, ok := apiResp["model"].(string); ok && respModel != "" {
-		model = respModel
-	}
-
-	return &llm.Response{
-		Message:      msg,
-		FinishReason: finishReason,
-		Model:        model,
-		Usage:        usage,
-	}, nil
+	return c.BaseClient.Complete(ctx, messages, opts, c)
 }
 
 // Stream 流式完成
 //
 // 实现 [llm.Provider] 接口。返回一个 channel，逐块接收 Claude 响应。
 func (c *Client) Stream(ctx context.Context, messages []llm.Message, opts *llm.Options) (<-chan *llm.Event, error) {
-	body := c.buildRequest(messages, opts, true)
-	bodyBytes, err := json.Marshal(body)
-	if err != nil {
-		return nil, fmt.Errorf("marshal request: %w", err)
-	}
-
-	resp, err := c.resty.R().
-		SetContext(ctx).
-		SetBody(bodyBytes).
-		SetDoNotParseResponse(true).
-		Post("/messages")
-	if err != nil {
-		return nil, fmt.Errorf("request failed: %w", err)
-	}
-
-	if resp.StatusCode() >= 400 {
-		return nil, fmt.Errorf("API error: %d - %s", resp.StatusCode(), resp.String())
-	}
-
-	chunks := make(chan *llm.Event, 10)
-	// 使用 SSEParser 解析流式响应
-	go c.sseParser.Parse(resp.RawBody(), chunks)
-	return chunks, nil
+	return c.BaseClient.Stream(ctx, messages, opts, c)
 }
 
 // Close 关闭客户端
@@ -199,6 +128,77 @@ func (c *Client) Stream(ctx context.Context, messages []llm.Message, opts *llm.O
 // 实现 [llm.Provider] 接口。当前实现为空操作。
 func (c *Client) Close() error {
 	return nil
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// core.ProviderConfig 接口实现
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Validate 验证配置
+func (c *Config) Validate() error {
+	if c == nil {
+		return llm.NewConfigError("config is required", nil)
+	}
+	if c.APIKey == "" {
+		return llm.NewConfigError("API key is required", nil)
+	}
+	return nil
+}
+
+// GetDefaults 获取默认值
+func (c *Config) GetDefaults() (string, string, time.Duration) {
+	baseURL := c.BaseURL
+	if baseURL == "" {
+		baseURL = "https://api.anthropic.com/v1"
+	}
+
+	model := c.Model
+	if model == "" {
+		model = "claude-3-5-haiku-latest"
+	}
+
+	timeout := c.Timeout
+	if timeout == 0 {
+		timeout = 120 * time.Second
+	}
+
+	return baseURL, model, timeout
+}
+
+// BuildHeaders 构建请求头
+// Anthropic 使用 X-Api-Key 而不是 Authorization
+func (c *Config) BuildHeaders() map[string]string {
+	version := c.AnthropicVersion
+	if version == "" {
+		version = "2023-06-01"
+	}
+
+	headers := map[string]string{
+		"X-Api-Key":         c.APIKey,
+		"anthropic-version": version,
+		"Content-Type":      "application/json",
+	}
+	maps.Copy(headers, c.Headers)
+	return headers
+}
+
+// ProviderName 返回 Provider 名称
+func (c *Config) ProviderName() string {
+	return "anthropic"
+}
+
+// GetModel 返回模型名称（辅助方法）
+func (c *Config) GetModel() string {
+	return c.Model
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// core.RequestBuilder 接口实现
+// ═══════════════════════════════════════════════════════════════════════════
+
+// BuildRequest 实现 core.RequestBuilder 接口
+func (c *Client) BuildRequest(messages []llm.Message, opts *llm.Options, stream bool) (map[string]any, error) {
+	return c.buildRequest(messages, opts, stream), nil
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

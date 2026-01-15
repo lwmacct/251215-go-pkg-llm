@@ -239,7 +239,7 @@ func TestClient_Complete_HTTPError(t *testing.T) {
 
 	assert.Nil(t, resp)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "API error: 401")
+	assert.Contains(t, err.Error(), "api_error")
 }
 
 func TestClient_Complete_ContextCancellation(t *testing.T) {
@@ -407,7 +407,7 @@ func TestClient_Stream_HTTPError(t *testing.T) {
 
 	assert.Nil(t, stream)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "API error: 500")
+	assert.Contains(t, err.Error(), "api_error")
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

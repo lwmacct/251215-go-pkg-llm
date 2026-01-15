@@ -2,13 +2,9 @@ package gemini
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"maps"
 	"time"
-
-	"github.com/go-resty/resty/v2"
 
 	"github.com/lwmacct/251215-go-pkg-llm/pkg/llm"
 	"github.com/lwmacct/251215-go-pkg-llm/pkg/llm/core"
@@ -79,14 +75,14 @@ type Config struct {
 // 实现 [llm.Provider] 接口，支持同步和流式完成。
 //
 // 架构设计：
-//   - 使用 core.Transformer 处理消息转换
-//   - 使用 core.SSEParser 处理流式响应
-//   - 协议差异由 protocol/gemini 适配器封装
+//   - 嵌入 core.BaseClient 复用通用逻辑
+//   - 保留 transformer 用于 buildRequest
+//   - 支持 Gemini API 和 Vertex AI 两种模式
 type Client struct {
+	*core.BaseClient
+
 	config      *Config
-	resty       *resty.Client
 	transformer *core.Transformer
-	sseParser   *core.SSEParser
 
 	// 内部状态
 	useVertexAI bool
@@ -96,8 +92,9 @@ type Client struct {
 //
 // 参数 config 必须包含 APIKey（Gemini API）或 VertexProject（Vertex AI）。
 func New(config *Config) (*Client, error) {
+	// 验证配置
 	if config == nil {
-		return nil, errors.New("config is required")
+		return nil, llm.NewConfigError("config is required", nil)
 	}
 
 	// 确定后端类型
@@ -105,58 +102,53 @@ func New(config *Config) (*Client, error) {
 
 	// 验证配置
 	if !useVertexAI && config.APIKey == "" {
-		return nil, errors.New("API key is required for Gemini API backend")
+		return nil, llm.NewConfigError("API key is required for Gemini API backend", nil)
 	}
 
-	// 应用默认值
-	baseURL := config.BaseURL
-	if baseURL == "" {
+	// 保存处理后的配置（应用默认值）
+	finalConfig := *config
+	if finalConfig.Model == "" {
+		finalConfig.Model = DefaultModel
+	}
+	if finalConfig.BaseURL == "" {
 		if useVertexAI {
-			location := config.VertexLocation
+			location := finalConfig.VertexLocation
 			if location == "" {
 				location = "us-central1"
 			}
-			baseURL = fmt.Sprintf("https://%s-aiplatform.googleapis.com/v1", location)
+			finalConfig.BaseURL = fmt.Sprintf("https://%s-aiplatform.googleapis.com/v1", location)
 		} else {
-			baseURL = DefaultBaseURL
+			finalConfig.BaseURL = DefaultBaseURL
 		}
 	}
-
-	model := config.Model
-	if model == "" {
-		model = DefaultModel
+	if finalConfig.Timeout == 0 {
+		finalConfig.Timeout = DefaultTimeout
 	}
 
-	timeout := config.Timeout
-	if timeout == 0 {
-		timeout = DefaultTimeout
+	// 创建 BaseClient
+	baseClient, err := core.NewBaseClient(
+		&finalConfig,
+		gemini.NewAdapter(),
+		gemini.NewEventHandler(),
+	)
+	if err != nil {
+		return nil, err
 	}
 
-	// 构建请求头
-	headers := map[string]string{
-		"Content-Type": "application/json",
-	}
-	maps.Copy(headers, config.Headers)
+	// 创建 transformer 用于 buildRequest
+	transformer := core.NewTransformer(gemini.NewAdapter())
 
-	// 创建 resty 客户端
-	r := resty.New()
-	r.SetBaseURL(baseURL)
-	r.SetTimeout(timeout)
-	for k, v := range headers {
-		r.SetHeader(k, v)
-	}
-
-	// 创建协议适配器和转换器
-	adapter := gemini.NewAdapter()
-	eventHandler := gemini.NewEventHandler()
-
-	return &Client{
-		config:      &Config{APIKey: config.APIKey, BaseURL: baseURL, Model: model, Timeout: timeout, Headers: headers, EnableThinking: config.EnableThinking, ThinkingBudget: config.ThinkingBudget, VertexProject: config.VertexProject, VertexLocation: config.VertexLocation, VertexCredFile: config.VertexCredFile},
-		resty:       r,
-		transformer: core.NewTransformer(adapter),
-		sseParser:   core.NewSSEParser(eventHandler),
+	client := &Client{
+		BaseClient:  baseClient,
+		config:      &finalConfig,
+		transformer: transformer,
 		useVertexAI: useVertexAI,
-	}, nil
+	}
+
+	// 设置端点构建器（Gemini 需要动态端点）
+	baseClient.SetEndpointBuilder(client)
+
+	return client, nil
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -167,76 +159,119 @@ func New(config *Config) (*Client, error) {
 //
 // 实现 [llm.Provider] 接口。发送消息到 Gemini 并等待完整响应。
 func (c *Client) Complete(ctx context.Context, messages []llm.Message, opts *llm.Options) (*llm.Response, error) {
-	body := c.buildRequest(messages, opts, false)
-	bodyBytes, err := json.Marshal(body)
-	if err != nil {
-		return nil, fmt.Errorf("marshal request: %w", err)
-	}
-
-	endpoint := c.buildEndpoint(false)
-
-	var apiResp map[string]any
-	resp, err := c.resty.R().
-		SetContext(ctx).
-		SetBody(bodyBytes).
-		SetResult(&apiResp).
-		Post(endpoint)
-	if err != nil {
-		return nil, fmt.Errorf("request failed: %w", err)
-	}
-
-	if resp.StatusCode() >= 400 {
-		return nil, fmt.Errorf("API error: %d - %s", resp.StatusCode(), resp.String())
-	}
-
-	// 使用 Transformer 解析响应
-	msg, finishReason, usage := c.transformer.ParseAPIResponse(apiResp)
-
-	return &llm.Response{
-		Message:      msg,
-		FinishReason: finishReason,
-		Model:        c.config.Model,
-		Usage:        usage,
-	}, nil
+	return c.BaseClient.Complete(ctx, messages, opts, c)
 }
 
 // Stream 流式完成
 //
 // 实现 [llm.Provider] 接口。返回一个 channel，逐块接收 Gemini 响应。
 func (c *Client) Stream(ctx context.Context, messages []llm.Message, opts *llm.Options) (<-chan *llm.Event, error) {
-	body := c.buildRequest(messages, opts, true)
-	bodyBytes, err := json.Marshal(body)
-	if err != nil {
-		return nil, fmt.Errorf("marshal request: %w", err)
-	}
-
-	endpoint := c.buildEndpoint(true)
-
-	resp, err := c.resty.R().
-		SetContext(ctx).
-		SetBody(bodyBytes).
-		SetDoNotParseResponse(true).
-		Post(endpoint)
-	if err != nil {
-		return nil, fmt.Errorf("request failed: %w", err)
-	}
-
-	if resp.StatusCode() >= 400 {
-		return nil, fmt.Errorf("API error: %d - %s", resp.StatusCode(), resp.String())
-	}
-
-	chunks := make(chan *llm.Event, 10)
-	// 使用 SSEParser 解析流式响应
-	go c.sseParser.Parse(resp.RawBody(), chunks)
-	return chunks, nil
+	return c.BaseClient.Stream(ctx, messages, opts, c)
 }
 
 // Close 关闭客户端
 //
-// 实现 [llm.Provider] 接口。当前实现为空操作，HTTP 客户端无需显式关闭。
+// 实现 [llm.Provider] 接口。当前实现为空操作。
 func (c *Client) Close() error {
 	return nil
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// core.ProviderConfig 接口实现
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Validate 验证配置
+func (c *Config) Validate() error {
+	if c == nil {
+		return llm.NewConfigError("config is required", nil)
+	}
+	useVertexAI := c.VertexProject != ""
+	if !useVertexAI && c.APIKey == "" {
+		return llm.NewConfigError("API key is required for Gemini API backend", nil)
+	}
+	return nil
+}
+
+// GetDefaults 获取默认值
+func (c *Config) GetDefaults() (string, string, time.Duration) {
+	baseURL := c.BaseURL
+	if baseURL == "" {
+		useVertexAI := c.VertexProject != ""
+		if useVertexAI {
+			location := c.VertexLocation
+			if location == "" {
+				location = "us-central1"
+			}
+			baseURL = fmt.Sprintf("https://%s-aiplatform.googleapis.com/v1", location)
+		} else {
+			baseURL = DefaultBaseURL
+		}
+	}
+
+	model := c.Model
+	if model == "" {
+		model = DefaultModel
+	}
+
+	timeout := c.Timeout
+	if timeout == 0 {
+		timeout = DefaultTimeout
+	}
+
+	return baseURL, model, timeout
+}
+
+// BuildHeaders 构建请求头
+// Gemini 不需要在请求头中包含 API key（使用 URL 参数或 Vertex AI 认证）
+func (c *Config) BuildHeaders() map[string]string {
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	maps.Copy(headers, c.Headers)
+	return headers
+}
+
+// ProviderName 返回 Provider 名称
+func (c *Config) ProviderName() string {
+	if c.VertexProject != "" {
+		return "gemini-vertex"
+	}
+	return "gemini"
+}
+
+// GetModel 返回模型名称（辅助方法）
+func (c *Config) GetModel() string {
+	return c.Model
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// core.EndpointBuilder 接口实现
+// ═══════════════════════════════════════════════════════════════════════════
+
+// BuildCompleteEndpoint 构建 Complete 端点
+// 实现 core.EndpointBuilder 接口
+func (c *Client) BuildCompleteEndpoint() string {
+	return c.buildEndpoint(false)
+}
+
+// BuildStreamEndpoint 构建 Stream 端点
+// 实现 core.EndpointBuilder 接口
+func (c *Client) BuildStreamEndpoint() string {
+	return c.buildEndpoint(true)
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// core.RequestBuilder 接口实现
+// ═══════════════════════════════════════════════════════════════════════════
+
+// BuildRequest 实现 core.RequestBuilder 接口
+func (c *Client) BuildRequest(messages []llm.Message, opts *llm.Options, stream bool) (map[string]any, error) {
+	return c.buildRequest(messages, opts, stream), nil
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 端点构建
+// ═══════════════════════════════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 请求构建

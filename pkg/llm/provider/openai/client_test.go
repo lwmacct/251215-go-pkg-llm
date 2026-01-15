@@ -61,13 +61,11 @@ func TestNew(t *testing.T) {
 				t.Error("Expected client to be non-nil")
 			}
 			if !tt.wantErr {
-				// 验证 transformer 和 sseParser 已初始化
+				// 验证 transformer 已初始化
 				if client.transformer == nil {
 					t.Error("Expected transformer to be initialized")
 				}
-				if client.sseParser == nil {
-					t.Error("Expected sseParser to be initialized")
-				}
+				// BaseClient 内部包含 sseParser，无需单独验证
 			}
 		})
 	}
